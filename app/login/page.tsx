@@ -17,6 +17,9 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     
+    console.log('--- LOGIN ATTEMPT ---')
+    console.log('Email:', email)
+    
     try {
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
@@ -24,18 +27,43 @@ export default function LoginPage() {
       })
 
       if (error) {
+        console.error('Auth error:', error)
         setError(error.message)
       } else {
+        console.log('Login success:', data)
         router.push('/checkin')
       }
     } catch (err: any) {
-      if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        setError('Network error: Could not reach Supabase. Check your internet connection and Supabase URL.')
+      console.error('Catch error:', err)
+      const isFetchError = err instanceof TypeError && (
+        err.message.includes('fetch') || 
+        err.message.includes('NetworkError') ||
+        err.message.includes('Aborted')
+      );
+
+      if (isFetchError) {
+        setError('Network error: Could not reach Supabase. Please check your internet connection and verify that your phone can access the Supabase URL.')
       } else {
-        setError(err.message || 'An unexpected error occurred.')
+        setError(err.message || 'An unexpected error occurred during login.')
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const testConnectivity = async () => {
+    setError('Testing connectivity...')
+    try {
+      console.log('Testing reachability to:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, { method: 'GET' })
+      if (res.ok || res.status === 401) { // 401 is actually "connected but unauthorized"
+        setError('Connectivity Test SUCCESS: Your device can reach Supabase!')
+      } else {
+        setError(`Connectivity Test: Received status ${res.status}.`)
+      }
+    } catch (err: any) {
+      console.error('Connectivity Test FAILED:', err)
+      setError(`Connectivity Test FAILED: ${err.message}. Your device/network is blocking the connection.`)
     }
   }
 
@@ -100,6 +128,16 @@ export default function LoginPage() {
               </span>
             )}
           </button>
+
+          <div className="pt-4 border-t border-[var(--border-color)]">
+            <button
+              type="button"
+              onClick={testConnectivity}
+              className="text-xs text-[var(--text-muted)] hover:text-accent underline w-full text-center"
+            >
+              Having issues? Test Network Connectivity
+            </button>
+          </div>
         </form>
       </div>
     </div>
