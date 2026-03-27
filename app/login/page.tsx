@@ -52,18 +52,19 @@ export default function LoginPage() {
   }
 
   const testConnectivity = async () => {
-    setError('Testing connectivity...')
+    setError('Testing connectivity via proxy...')
     try {
-      console.log('Testing reachability to:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, { method: 'GET' })
-      if (res.ok || res.status === 401) { // 401 is actually "connected but unauthorized"
-        setError('Connectivity Test SUCCESS: Your device can reach Supabase!')
+      // Test via our new proxy to bypass network blocks
+      const proxyUrl = typeof window !== 'undefined' ? `${window.location.origin}/supabase-proxy/rest/v1/` : '/supabase-proxy/rest/v1/'
+      const res = await fetch(proxyUrl, { method: 'GET' })
+      if (res.ok || res.status === 401) {
+        setError('Connectivity Test SUCCESS: The proxy is working and reachable!')
       } else {
-        setError(`Connectivity Test: Received status ${res.status}.`)
+        setError(`Connectivity Test: Received status ${res.status} from proxy.`)
       }
     } catch (err: any) {
       console.error('Connectivity Test FAILED:', err)
-      setError(`Connectivity Test FAILED: ${err.message}. Your device/network is blocking the connection.`)
+      setError(`Connectivity Test FAILED: ${err.message}. The proxy itself might be blocked or misconfigured.`)
     }
   }
 
