@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://izzsbidqdupibjnwefqs.supabase.co';
+
 const nextConfig: NextConfig = {
   /* config options here */
   env: {
@@ -8,13 +10,15 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ["192.168.1.7", "localhost:3000"],
   async rewrites() {
+    console.log('[Rewrites] Supabase URL:', supabaseUrl)
     return [
       {
         source: '/supabase-proxy/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`,
+        destination: `${supabaseUrl}/:path*`,
       },
     ]
   },
 };
 
 export default nextConfig;
+
