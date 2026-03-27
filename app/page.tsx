@@ -17,7 +17,18 @@ export default function Home() {
 
   useEffect(() => {
     if (hasMounted && isMobile === false) {
-      router.push('/checkin')
+      const checkRole = async () => {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error || !user) {
+          // Fallback to login if No User, though Middleware should handle it.
+          router.push('/login')
+          return
+        }
+        const email = user.email?.toLowerCase() || ''
+        const isAdmin = email.includes('admin@')
+        router.push(isAdmin ? '/dashboard' : '/checkin')
+      }
+      checkRole()
     }
   }, [hasMounted, isMobile, router])
 

@@ -61,21 +61,45 @@ export async function proxy(request: NextRequest) {
 
     console.log(`[Proxy] ${gymName} | ${request.method} ${pathname} | User:`, user?.email ?? 'none')
 
-    // 6. Handle route protection and redirects
+    // 6. Role-Based Access Control (RBAC) checks
+    const userEmail = user?.email?.toLowerCase() || ''
+    const isCheckinUser = userEmail === 'checkin@gym.com' || userEmail.startsWith('checkin@')
+    const isAdminUser = userEmail === 'admin@gym.com' || userEmail.startsWith('admin@')
     const isLoginPage = pathname.startsWith('/login')
-    
-    // Redirect unauthenticated users to login, except if they're already on it or it's a static/API resource
+    const isCheckinPath = pathname.startsWith('/checkin')
+
+    // Redirect unauthenticated users to login
     if (!user && !isLoginPage) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
-      // Carry cookies/headers from current response (token updates, etc.)
       const redirectResp = NextResponse.redirect(url)
       response.headers.forEach((v, k) => redirectResp.headers.set(k, v))
       return redirectResp
     }
 
-    // Redirect authenticated users away from login to check-in
+    // Redirect authenticated users away from login
     if (user && isLoginPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = isAdminUser ? '/dashboard' : '/checkin'
+      const redirectResp = NextResponse.redirect(url)
+      response.headers.forEach((v, k) => redirectResp.headers.set(k, v))
+      return redirectResp
+    }
+
+    // Redirect admin user from root (/) to /dashboard on desktop
+    if (user && isAdminUser && pathname === '/') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      const redirectResp = NextResponse.redirect(url)
+      response.headers.forEach((v, k) => redirectResp.headers.set(k, v))
+      return redirectResp
+    }
+
+    // STRICT CHECKIN PROTECTION: 
+    // If user is 'checkin@gym.com', they can ONLY access /checkin (and its API/Supabase resources).
+    // They are blocked from accessing /, /members, /attendance, /messages, etc.
+    if (isCheckinUser && !isCheckinPath) {
+      console.log(`[Proxy] Role Violation: Blocked ${userEmail} from ${pathname}`)
       const url = request.nextUrl.clone()
       url.pathname = '/checkin'
       const redirectResp = NextResponse.redirect(url)

@@ -30,8 +30,10 @@ export default function LoginPage() {
         setLoading(false)
       } else {
         console.log('Login success:', data)
-        // Use hard navigation to ensure auth cookies are sent with the new request
-        window.location.href = '/checkin'
+        // Check role and redirect accordingly
+        const userEmail = email.toLowerCase()
+        const isAdmin = userEmail.includes('admin@')
+        window.location.href = isAdmin ? '/dashboard' : '/checkin'
         // Don't setLoading(false) — keep spinner until the page navigates
       }
     } catch (err: any) {

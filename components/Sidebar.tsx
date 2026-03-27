@@ -14,17 +14,19 @@ import {
   Menu,
   X,
   Dumbbell,
-  Calendar
+  Calendar,
+  LogOut
 } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { supabase } from '@/lib/supabase'
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 const navItems = [
-  { label: 'Dashboard', href: '/', icon: Dumbbell },
+  { label: 'Dashboard', href: '/dashboard', icon: Dumbbell },
   { label: 'Check In', href: '/checkin', icon: CheckSquare },
   { label: 'Attendance', href: '/attendance', icon: Calendar },
   { label: 'Members', href: '/members', icon: Users },
@@ -37,6 +39,8 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [userRole, setUserRole] = useState<'admin' | 'checkin' | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme')
@@ -44,6 +48,17 @@ export default function Sidebar() {
       document.body.classList.add('dark')
       setIsDark(true)
     }
+
+    // Check user role
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const email = user.email?.toLowerCase() || ''
+        setUserRole(email === 'checkin@gym.com' || email.startsWith('checkin@') ? 'checkin' : 'admin')
+      }
+      setLoading(false)
+    }
+    fetchUser()
   }, [])
 
   const toggleTheme = () => {
@@ -57,14 +72,29 @@ export default function Sidebar() {
     }
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
   const toggleSidebar = () => setIsOpen(!isOpen)
+
+  if (loading) return null
+
+  // Define nav items for the current role
+  const allowedNavItems = navItems.filter(item => {
+    if (userRole === 'checkin') {
+      return item.href === '/checkin'
+    }
+    return true
+  })
 
   return (
     <>
       {/* Mobile Header - Hidden on Home page to allow MobileDashboard to show its own header */}
       <div className={cn(
-        "lg:hidden fixed top-0 left-0 right-0 h-16 glass-sidebar flex items-center justify-between px-6 z-50 transition-opacity",
-        pathname === '/' ? "opacity-0 pointer-events-none" : "opacity-100"
+        "lg:hidden fixed top-0 left-0 right-0 h-16 glass-sidebar flex items-center justify-between px-6 z-50 transition-opacity whitespace-nowrap overflow-hidden",
+        (pathname === '/' || pathname === '/checkin') ? "opacity-0 pointer-events-none" : "opacity-100"
       )}>
         <div className="flex items-center gap-2">
           <Dumbbell className="text-accent w-6 h-6" />
@@ -94,7 +124,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex-1 flex flex-col gap-2">
-          {navItems.map((item) => {
+          {allowedNavItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))
             return (
               <Link
@@ -115,24 +145,32 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-[var(--divider)]">
+        <div className="mt-auto pt-6 border-t border-[var(--divider)] flex flex-col gap-4">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors duration-200"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Logout</span>
+          </button>
+
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between bg-[var(--input-bg)] p-2 rounded-2xl border border-[var(--input-border)]"
+            className="w-full flex items-center justify-between bg-[var(--input-bg)] p-1.5 rounded-2xl border border-[var(--input-border)]"
           >
             <div className={cn(
               "flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl flex-1 transition-all",
               !isDark ? "bg-white text-orange-600 shadow-sm" : "text-gray-500"
             )}>
               <Sun className="w-4 h-4" />
-              <span className="text-xs font-semibold">Light</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Light</span>
             </div>
             <div className={cn(
               "flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl flex-1 transition-all",
               isDark ? "bg-[var(--card-bg)] text-orange-400 shadow-sm border border-white/10" : "text-gray-500"
             )}>
               <Moon className="w-4 h-4" />
-              <span className="text-xs font-semibold">Dark</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Dark</span>
             </div>
           </button>
         </div>
