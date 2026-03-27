@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Dumbbell, Lock, Mail, Loader2 } from 'lucide-react'
 
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,9 +27,12 @@ export default function LoginPage() {
       if (error) {
         console.error('Auth error:', error)
         setError(error.message)
+        setLoading(false)
       } else {
         console.log('Login success:', data)
-        router.push('/checkin')
+        // Use hard navigation to ensure auth cookies are sent with the new request
+        window.location.href = '/checkin'
+        // Don't setLoading(false) — keep spinner until the page navigates
       }
     } catch (err: any) {
       console.error('Catch error:', err)
@@ -46,7 +47,6 @@ export default function LoginPage() {
       } else {
         setError(err.message || 'An unexpected error occurred during login.')
       }
-    } finally {
       setLoading(false)
     }
   }
@@ -67,6 +67,7 @@ export default function LoginPage() {
       setError(`Connectivity Test FAILED: ${err.message}. The proxy itself might be blocked or misconfigured.`)
     }
   }
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6 bg-transparent relative">

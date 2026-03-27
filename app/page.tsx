@@ -4,6 +4,7 @@ import MobileDashboard from '@/components/MobileDashboard'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/lib/use-mobile'
 import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export default function Home() {
   const isMobile = useIsMobile()
@@ -27,10 +28,10 @@ export default function Home() {
       </div>
     )
   }
-  
+
   if (isMobile) {
     return <MobileDashboard />
   }
-  
+
   return null // Will be redirected by useEffect
 }
