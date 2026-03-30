@@ -466,7 +466,7 @@ export default function MemberDetailPage() {
                   <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
                   <input
                     type="text"
-                    className="pl-16 h-14"
+                    className="!pl-10 h-14"
                     value={editReceiptNumber}
                     onChange={(e) => setEditReceiptNumber(e.target.value)}
                   />
