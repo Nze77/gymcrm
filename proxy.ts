@@ -1,4 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
@@ -14,51 +13,47 @@ export async function proxy(request: NextRequest) {
     request: { headers: request.headers },
   })
 
-  // 3. Environmental sanity check
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
   const gymName = process.env.NEXT_PUBLIC_GYM_NAME || 'Gym CRM'
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error(`[Proxy] ${gymName} | Environment variables missing! Check .env file.`)
-    return response
-  }
-
   try {
-    // 4. Create server-side Supabase client with unified cookie handling
-    const supabase = createServerClient(
-      supabaseUrl,
-      supabaseKey,
-      {
-        cookieOptions: {
-          name: 'sb-gym-crm-auth',
-          path: '/',
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production'
-        },
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value)
-            )
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            )
-          },
-        },
+    // 4. Decode session from cookie locally (no network call needed)
+    function getSessionUser(cookieHeader: string | null): { email: string } | null {
+      if (!cookieHeader) return null
+      try {
+        const cookies = Object.fromEntries(
+          cookieHeader.split(';').map(c => {
+            const [k, ...v] = c.trim().split('=')
+            return [k.trim(), decodeURIComponent(v.join('='))]
+          })
+        )
+        const sessionCookie = cookies['sb-gym-crm-auth'] ||
+          Object.entries(cookies).find(([k]) => k.startsWith('sb-') && k.endsWith('-auth-token'))?.[1]
+        if (!sessionCookie) return null
+
+        let rawJson = sessionCookie
+        if (rawJson.startsWith('base64-')) {
+          rawJson = Buffer.from(rawJson.slice(7), 'base64').toString('utf8')
+        }
+        const parsed = JSON.parse(rawJson)
+        const accessToken = parsed?.access_token || parsed?.[0]?.access_token || parsed
+        if (!accessToken || typeof accessToken !== 'string') return null
+
+        const parts = accessToken.split('.')
+        if (parts.length !== 3) return null
+
+        const payload = JSON.parse(
+          Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+        )
+
+        if (!payload.exp || payload.exp * 1000 < Date.now()) return null
+
+        return { email: payload.email || '' }
+      } catch {
+        return null
       }
-    )
-
-    // 5. Check auth state (safely)
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    if (error && !error.message.includes('Auth session missing')) {
-      console.log(`[Proxy] ${gymName} | Auth check log:`, error.message)
     }
 
+    const user = getSessionUser(request.headers.get('cookie'))
     console.log(`[Proxy] ${gymName} | ${request.method} ${pathname} | User:`, user?.email ?? 'none')
 
     // 6. Role-Based Access Control (RBAC) checks

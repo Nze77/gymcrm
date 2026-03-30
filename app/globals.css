@@ -4,7 +4,7 @@
   --bg: #f0ebe3;
   --card-bg: rgba(255, 255, 255, 0.62);
   --card-border: rgba(255, 255, 255, 0.85);
-  --card-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  --card-shadow: 0 8px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   --input-bg: rgba(245, 242, 238, 0.85);
   --input-border: rgba(0, 0, 0, 0.08);
   --input-focus: rgba(232, 98, 26, 0.3);
@@ -14,9 +14,9 @@
   --accent: #e8621a;
   --accent-soft: rgba(232, 98, 26, 0.1);
   --accent-text: #c45212;
-  --orb1: radial-gradient(circle, rgba(235,115,40,0.60) 0%, rgba(245,160,60,0.35) 40%, transparent 68%);
-  --orb2: radial-gradient(circle, rgba(220,180,140,0.45) 0%, transparent 65%);
-  --orb3: radial-gradient(circle, rgba(232,98,26,0.28) 0%, transparent 60%);
+  --orb1: radial-gradient(circle, rgba(235, 115, 40, 0.60) 0%, rgba(245, 160, 60, 0.35) 40%, transparent 68%);
+  --orb2: radial-gradient(circle, rgba(220, 180, 140, 0.45) 0%, transparent 65%);
+  --orb3: radial-gradient(circle, rgba(232, 98, 26, 0.28) 0%, transparent 60%);
   --sidebar-bg: rgba(255, 255, 255, 0.48);
   --sidebar-border: rgba(255, 255, 255, 0.72);
   --nav-active-bg: rgba(232, 98, 26, 0.1);
@@ -32,13 +32,15 @@
   --error-color: #b91c1c;
   --table-head-bg: rgba(240, 235, 227, 0.75);
   --row-hover: rgba(0, 0, 0, 0.025);
+  --modal-bg-dense: rgba(255, 255, 255, 0.9);
+  --modal-text-dense: #000000;
 }
 
 .dark {
   --bg: #14110d;
   --card-bg: rgba(255, 255, 255, 0.05);
   --card-border: rgba(255, 255, 255, 0.09);
-  --card-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  --card-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
   --input-bg: rgba(255, 255, 255, 0.06);
   --input-border: rgba(255, 255, 255, 0.1);
   --input-focus: rgba(235, 115, 40, 0.35);
@@ -48,9 +50,9 @@
   --accent: #f07030;
   --accent-soft: rgba(240, 112, 48, 0.15);
   --accent-text: #f5894a;
-  --orb1: radial-gradient(circle, rgba(235,115,40,0.38) 0%, rgba(200,100,30,0.18) 40%, transparent 68%);
-  --orb2: radial-gradient(circle, rgba(140,80,30,0.22) 0%, transparent 65%);
-  --orb3: radial-gradient(circle, rgba(200,75,20,0.18) 0%, transparent 60%);
+  --orb1: radial-gradient(circle, rgba(235, 115, 40, 0.38) 0%, rgba(200, 100, 30, 0.18) 40%, transparent 68%);
+  --orb2: radial-gradient(circle, rgba(140, 80, 30, 0.22) 0%, transparent 65%);
+  --orb3: radial-gradient(circle, rgba(200, 75, 20, 0.18) 0%, transparent 60%);
   --sidebar-bg: rgba(255, 255, 255, 0.03);
   --sidebar-border: rgba(255, 255, 255, 0.07);
   --nav-active-bg: rgba(240, 112, 48, 0.14);
@@ -66,6 +68,8 @@
   --error-color: #fca5a5;
   --table-head-bg: rgba(255, 255, 255, 0.03);
   --row-hover: rgba(255, 255, 255, 0.03);
+  --modal-bg-dense: rgba(10, 10, 10, 0.98);
+  --modal-text-dense: #ffffff;
 }
 
 @theme {
@@ -84,7 +88,10 @@ body {
   min-height: 100vh;
 }
 
-h1, h2, h3, .serif {
+h1,
+h2,
+h3,
+.serif {
   font-family: var(--font-dm-serif);
 }
 
@@ -96,9 +103,36 @@ h1, h2, h3, .serif {
   overflow: hidden;
 }
 
-.orb-1 { width: 560px; height: 560px; background: var(--orb1); filter: blur(72px); position: absolute; top: -120px; right: -80px; }
-.orb-2 { width: 400px; height: 400px; background: var(--orb2); filter: blur(85px); position: absolute; bottom: 40px; left: -60px; }
-.orb-3 { width: 300px; height: 300px; background: var(--orb3); filter: blur(65px); position: absolute; top: 50%; left: 50%; transform: translate(-40%, -50%); }
+.orb-1 {
+  width: 560px;
+  height: 560px;
+  background: var(--orb1);
+  filter: blur(72px);
+  position: absolute;
+  top: -120px;
+  right: -80px;
+}
+
+.orb-2 {
+  width: 400px;
+  height: 400px;
+  background: var(--orb2);
+  filter: blur(85px);
+  position: absolute;
+  bottom: 40px;
+  left: -60px;
+}
+
+.orb-3 {
+  width: 300px;
+  height: 300px;
+  background: var(--orb3);
+  filter: blur(65px);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -50%);
+}
 
 .glass-card {
   background: var(--card-bg);
@@ -124,7 +158,9 @@ h1, h2, h3, .serif {
   display: block;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: 14px;
@@ -138,7 +174,9 @@ input, select, textarea {
   transition: all 0.2s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--input-focus);
@@ -197,6 +235,7 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   display: inline-flex;
   align-items: center;
+  backdrop-filter: blur(24px);
 }
 
 .badge-active {
@@ -218,8 +257,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fadeUp {
@@ -227,14 +273,30 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .animate-scaleIn {
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--input-border);
+  border-radius: 3px;
+}

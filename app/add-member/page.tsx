@@ -31,6 +31,7 @@ export default function AddMemberPage() {
   const [joinedAt, setJoinedAt] = useState(formatInputDate(new Date()))
   const [validTill, setValidTill] = useState('')
   const [amountPaid, setAmountPaid] = useState('')
+  const [receiptNumber, setReceiptNumber] = useState('')
   const [image, setImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
@@ -76,6 +77,7 @@ export default function AddMemberPage() {
           joined_at: joinedAt,
           valid_till: validTill,
           amount_paid: parseFloat(amountPaid) || 0,
+          receipt_number: receiptNumber,
           profile_image_url: profileImageUrl,
           is_active: new Date(validTill) >= new Date()
         }])
@@ -191,6 +193,20 @@ export default function AddMemberPage() {
                     className="!pl-10 h-14"
                     value={amountPaid}
                     onChange={(e) => setAmountPaid(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-full md:col-span-1">
+                <label className="label">Receipt Number</label>
+                <div className="relative group/field">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="REC-12345"
+                    className="!pl-10 h-14"
+                    value={receiptNumber}
+                    onChange={(e) => setReceiptNumber(e.target.value)}
                   />
                 </div>
               </div>

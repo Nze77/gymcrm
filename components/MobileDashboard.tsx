@@ -25,7 +25,7 @@ export default function MobileDashboard() {
               <Dumbbell className="text-white w-7 h-7" />
             </div>
           </div>
-          <h1 className="serif text-4xl font-bold tracking-[0.05em] mb-2">AM Fitness</h1>
+          <h1 className="serif text-4xl font-bold tracking-[0.05em] mb-2">Aim Fitness</h1>
           <p className="text-[var(--text-secondary)] font-medium opacity-70 serif italic uppercase tracking-[0.2em] text-[10px]">
             Gym Management System
           </p>
@@ -49,7 +49,7 @@ export default function MobileDashboard() {
         </div>
 
         <p className="text-[10px] text-[var(--text-muted)] font-bold tracking-[0.25em] uppercase opacity-50 select-none">
-          Powered by AM Fitness CRM
+          Powered by Aim Fitness CRM
         </p>
       </div>
     </div>

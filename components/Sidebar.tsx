@@ -98,7 +98,7 @@ export default function Sidebar() {
       )}>
         <div className="flex items-center gap-2">
           <Dumbbell className="text-accent w-6 h-6" />
-          <span className="serif text-xl font-bold">AM Fitness</span>
+          <span className="serif text-xl font-bold">Aim Fitness</span>
         </div>
         <button onClick={toggleSidebar} className="p-2">
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -120,7 +120,7 @@ export default function Sidebar() {
       )}>
         <div className="hidden lg:flex items-center gap-2 mb-12">
           <Dumbbell className="text-accent w-8 h-8" />
-          <span className="serif text-2xl font-bold">AM Fitness</span>
+          <span className="serif text-2xl font-bold">Aim Fitness</span>
         </div>
 
         <nav className="flex-1 flex flex-col gap-2">

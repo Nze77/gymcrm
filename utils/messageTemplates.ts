@@ -1,4 +1,4 @@
-export const getWelcomeMessage = (name: string, joinDate: string, validTill: string, gymName: string = 'AM Fitness') => {
+export const getWelcomeMessage = (name: string, joinDate: string, validTill: string, gymName: string = 'Aim Fitness') => {
   return `Hey ${name}! 👋
 
 Welcome to ${gymName}! 🏋️
@@ -15,7 +15,7 @@ See you on the floor! 💪
 — ${gymName} Team`
 }
 
-export const getReminderMessage = (name: string, validTill: string, contactInfo: string = 'the front desk', gymName: string = 'AM Fitness') => {
+export const getReminderMessage = (name: string, validTill: string, contactInfo: string = 'the front desk', gymName: string = 'Aim Fitness') => {
   return `Hey ${name}! 👋
 
 This is a friendly reminder that your gym membership expires on ${validTill}. 

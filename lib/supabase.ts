@@ -1,11 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// We use the local proxy to bypass potential network/CORS issues on the client side
 // The cookie name is unified to ensure the server-side proxy can always find it
 const isBrowser = typeof window !== 'undefined'
-const supabaseUrl = isBrowser 
-  ? window.location.origin + '/supabase-proxy' 
+const supabaseUrl = isBrowser
+  ? window.location.origin + '/supabase-proxy'
   : process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+
 
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
 

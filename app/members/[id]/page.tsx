@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect, use } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { 
-  Phone, 
-  Mail, 
-  Calendar, 
-  CreditCard, 
-  Plus, 
-  Loader2, 
+import {
+  Phone,
+  Mail,
+  Calendar,
+  CreditCard,
+  Plus,
+  Loader2,
   ArrowLeft,
   Ruler,
   Weight,
   Camera,
-  X
+  X,
+  Edit,
+  User
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member, BodyRecord } from '@/types'
@@ -27,12 +29,20 @@ export default function MemberDetailPage() {
   const params = useParams()
   const memberId = params.id as string
   const router = useRouter()
-  
+
   const [member, setMember] = useState<Member | null>(null)
   const [records, setRecords] = useState<BodyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Edit Member Form
+  const [editFullName, setEditFullName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editValidTill, setEditValidTill] = useState('')
+  const [editAmountPaid, setEditAmountPaid] = useState('')
+  const [editReceiptNumber, setEditReceiptNumber] = useState('')
 
   // New Record Form
   const [weight, setWeight] = useState('')
@@ -119,6 +129,40 @@ export default function MemberDetailPage() {
     setIsSaving(false)
   }
 
+  const openEditModal = () => {
+    if (member) {
+      setEditFullName(member.full_name)
+      setEditPhone(member.phone || '')
+      setEditValidTill(formatInputDate(new Date(member.valid_till)))
+      setEditAmountPaid(member.amount_paid?.toString() || '0')
+      setEditReceiptNumber(member.receipt_number || '')
+      setIsEditModalOpen(true)
+    }
+  }
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSaving(true)
+
+    const { error } = await supabase
+      .from('members')
+      .update({
+        full_name: editFullName,
+        phone: editPhone,
+        valid_till: editValidTill,
+        amount_paid: parseFloat(editAmountPaid) || 0,
+        receipt_number: editReceiptNumber,
+        is_active: new Date(editValidTill) >= new Date()
+      })
+      .eq('id', memberId)
+
+    if (!error) {
+      setIsEditModalOpen(false)
+      fetchMemberData()
+    }
+    setIsSaving(false)
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -141,7 +185,7 @@ export default function MemberDetailPage() {
             <ArrowLeft className="w-5 h-5" />
             <span>Back to Members</span>
           </button>
-          
+
           <div className="flex flex-col md:flex-row gap-8 items-start">
             <div className="w-32 h-32 md:w-40 md:h-40 glass-card p-2 rounded-3xl relative">
               <div className="w-full h-full rounded-2xl overflow-hidden bg-[var(--input-bg)] border border-[var(--input-border)]">
@@ -154,13 +198,18 @@ export default function MemberDetailPage() {
                 )}
               </div>
               <div className="absolute -bottom-3 -right-3">
-                <StatusBadge isActive={active} className="h-10 px-4 text-sm" />
+                <StatusBadge isActive={active} className="h-10 px-4 text-sm backdrop-blur-4xl" />
               </div>
             </div>
 
             <div className="flex-1 flex flex-col gap-6 pt-2">
               <div>
-                <h1 className="text-5xl font-bold mb-3">{member.full_name}</h1>
+                <div className="flex items-center gap-4 mb-3">
+                  <h1 className="text-5xl font-bold">{member.full_name}</h1>
+                  <button onClick={openEditModal} className="p-2 bg-[var(--input-bg)] rounded-xl hover:text-accent transition-colors" title="Edit Member">
+                    <Edit className="w-5 h-5" />
+                  </button>
+                </div>
                 <p className="text-[var(--text-secondary)] text-lg">Member since {formatDate(member.joined_at)}</p>
               </div>
 
@@ -202,7 +251,7 @@ export default function MemberDetailPage() {
         <section className="flex flex-col gap-8 pb-20">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-bold">Progress Tracking</h2>
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               className="btn btn-primary h-14 px-8 gap-3 shadow-xl shadow-black/5"
             >
@@ -235,8 +284,8 @@ export default function MemberDetailPage() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <div className="glass-card w-full max-w-[500px] p-8 md:p-10 relative z-10 animate-scaleIn shadow-2xl overflow-y-auto max-h-[90vh]">
+          <div className="absolute inset-0 bg-transparent" onClick={() => setIsModalOpen(false)} />
+          <div className="glass-card !bg-[var(--modal-bg-dense)] w-full max-w-[500px] p-8 md:p-10 relative z-10 animate-scaleIn shadow-2xl overflow-y-auto max-h-[90vh] backdrop-blur-[10px]">
             <div className="flex items-center justify-between mb-10">
               <div>
                 <h2 className="text-3xl font-bold mb-2">New Body Record</h2>
@@ -250,7 +299,7 @@ export default function MemberDetailPage() {
             <form onSubmit={handleAddRecord} className="space-y-8">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="label">Weight (KG)</label>
+                  <label className="label !text-[var(--modal-text-dense)] font-bold">Weight (KG)</label>
                   <div className="relative group/field">
                     <Weight className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
                     <input
@@ -265,7 +314,7 @@ export default function MemberDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Height (CM)</label>
+                  <label className="label !text-[var(--modal-text-dense)] font-bold">Height (CM)</label>
                   <div className="relative group/field">
                     <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
                     <input
@@ -282,7 +331,7 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="label">Record Date</label>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Record Date</label>
                 <div className="relative group/field">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
                   <input
@@ -296,7 +345,7 @@ export default function MemberDetailPage() {
               </div>
 
               <div>
-                <label className="label">Progress Photo</label>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Progress Photo</label>
                 <div className="relative group/field h-40 border-2 border-dashed border-[var(--input-border)] rounded-3xl flex flex-col items-center justify-center gap-3 bg-[var(--input-bg)] hover:bg-orange-50/20 hover:border-accent transition-all cursor-pointer overflow-hidden">
                   {imagePreview ? (
                     <>
@@ -333,6 +382,108 @@ export default function MemberDetailPage() {
                   <span className="flex items-center gap-3">
                     <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
                     Save Progress Record
+                  </span>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-transparent" onClick={() => setIsEditModalOpen(false)} />
+          <div className="glass-card !bg-[var(--modal-bg-dense)] w-full max-w-[500px] p-8 md:p-10 relative z-10 animate-scaleIn shadow-2xl overflow-y-auto max-h-[90vh] backdrop-blur-[10px]">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Edit Member</h2>
+                <p className="text-[var(--text-secondary)]">Update member details</p>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-3 bg-[var(--input-bg)] rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateMember} className="space-y-8">
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Full Name</label>
+                <div className="relative group/field">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="text"
+                    className="!pl-10 h-14"
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Phone Number</label>
+                <div className="relative group/field">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="tel"
+                    className="!pl-10 h-14"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Valid Until</label>
+                <div className="relative group/field">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="date"
+                    className="!pl-10 h-14"
+                    value={editValidTill}
+                    onChange={(e) => setEditValidTill(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Amount Paid</label>
+                <div className="relative group/field">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="number"
+                    className="!pl-10 h-14"
+                    value={editAmountPaid}
+                    onChange={(e) => setEditAmountPaid(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">Receipt Number</label>
+                <div className="relative group/field">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="text"
+                    className="pl-16 h-14"
+                    value={editReceiptNumber}
+                    onChange={(e) => setEditReceiptNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn btn-accent w-full h-16 shadow-xl shadow-orange-500/20 text-lg group"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <Edit className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    Update Member
                   </span>
                 )}
               </button>

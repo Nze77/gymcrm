@@ -6,6 +6,7 @@ export interface Member {
   joined_at: string
   valid_till: string
   amount_paid?: number
+  receipt_number?: string
   is_active: boolean
   profile_image_url?: string
   created_at: string
