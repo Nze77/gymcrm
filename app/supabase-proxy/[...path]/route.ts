@@ -42,16 +42,16 @@ function httpsRequest(
         const chunks: Buffer[] = []
         res.on('data', (chunk: Buffer) => chunks.push(chunk))
         res.on('end', () => {
-          const responseHeaders: Record<string, string> = {}
+          const responseHeaders: Record<string, string | string[]> = {}
           const skip = ['transfer-encoding', 'connection', 'content-encoding', 'content-length']
           for (const [k, v] of Object.entries(res.headers)) {
             if (v && !skip.includes(k.toLowerCase())) {
-              responseHeaders[k] = Array.isArray(v) ? v.join(', ') : v
+              responseHeaders[k] = v
             }
           }
           const body = Buffer.concat(chunks)
           responseHeaders['content-length'] = String(body.length)
-          resolve({ status: res.statusCode ?? 500, headers: responseHeaders, body })
+          resolve({ status: res.statusCode ?? 500, headers: responseHeaders as Record<string, string>, body })
         })
         res.on('error', reject)
       }
@@ -80,9 +80,38 @@ async function handler(
 
   const hasBody = !['GET', 'HEAD'].includes(request.method)
   const bodyBuffer = hasBody ? Buffer.from(await request.arrayBuffer()) : undefined
+
+  if (urlPath.includes('/auth/v1/token')) {
+    console.log(`[Proxy] Auth Token Request: ${request.method} ${urlPath}`)
+    console.log(`[Proxy] Body Length: ${bodyBuffer?.length ?? 0}`)
+    if (bodyBuffer) {
+      try {
+        console.log(`[Proxy] Body Preview: ${bodyBuffer.toString('utf8').slice(0, 100)}`)
+      } catch (e) {
+        console.log(`[Proxy] Could not decode body as UTF-8`)
+      }
+    }
+  }
+
   const upstream = await httpsRequest(urlPath, request.method, headers, bodyBuffer)
 
-  return new NextResponse(upstream.body as unknown as BodyInit, { status: upstream.status, headers: upstream.headers })
+  // Use a proper Headers object to handle multiple Set-Cookie correctly
+  const responseHeaders = new Headers()
+  for (const [key, value] of Object.entries(upstream.headers)) {
+    if (key.toLowerCase() === 'set-cookie') {
+      const cookies = Array.isArray(value) ? value : [value]
+      cookies.forEach(cookie => responseHeaders.append('set-cookie', cookie))
+    } else {
+      responseHeaders.set(key, Array.isArray(value) ? value.join(', ') : value)
+    }
+  }
+
+  const responseBody = [204, 205, 304].includes(upstream.status) ? null : upstream.body
+
+  return new NextResponse(responseBody as unknown as BodyInit, { 
+    status: upstream.status, 
+    headers: responseHeaders 
+  })
 }
 
 export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE, handler as OPTIONS }
