@@ -147,7 +147,7 @@ export default function Sidebar() {
         </nav>
 
         <div className="mt-auto pt-6 border-t border-[var(--divider)] flex flex-col gap-4">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors duration-200"
           >
