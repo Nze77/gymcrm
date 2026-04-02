@@ -17,7 +17,14 @@ if (!supabaseKey) {
 }
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
+  auth: {
+    storageKey: 'sb-gym-crm-auth',
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
   cookieOptions: {
+    name: 'sb-gym-crm-auth',
     path: '/',
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production'
@@ -28,7 +35,8 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
       if (typeof window !== 'undefined') {
         const urlStr = url.toString()
         if (urlStr.startsWith(supabaseUrl)) {
-          const proxyUrl = urlStr.replace(supabaseUrl, window.location.origin + '/supabase-proxy')
+          // Use absolute path to ensure samedomain policy
+          const proxyUrl = urlStr.replace(supabaseUrl, '/supabase-proxy')
           return fetch(proxyUrl, options)
         }
       }

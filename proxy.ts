@@ -53,8 +53,22 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    const user = getSessionUser(request.headers.get('cookie'))
+    const cookieHeader = request.headers.get('cookie')
+    const user = getSessionUser(cookieHeader)
     console.log(`[Proxy] ${gymName} | ${request.method} ${pathname} | User:`, user?.email ?? 'none')
+
+    // If we have a cookie but getSessionUser returned null, it means the cookie is invalid or expired.
+    // We should clear it to prevent loops.
+    const hasAuthCookie = cookieHeader?.includes('sb-')
+    if (hasAuthCookie && !user) {
+      console.log(`[Proxy] Clearing invalid/expired cookie for ${pathname}`)
+      response.headers.append('Set-Cookie', 'sb-gym-crm-auth=; Path=/; Max-Age=0; SameSite=Lax')
+      // Also clear potential default Supabase naming
+      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0]
+      if (projectRef) {
+        response.headers.append('Set-Cookie', `sb-${projectRef}-auth-token=; Path=/; Max-Age=0; SameSite=Lax`)
+      }
+    }
 
     // 6. Role-Based Access Control (RBAC) checks
     const userEmail = user?.email?.toLowerCase() || ''
@@ -68,7 +82,10 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       const redirectResp = NextResponse.redirect(url)
-      response.headers.forEach((v, k) => redirectResp.headers.set(k, v))
+      // Copy over the 'Set-Cookie' from our base response if we just cleared a bad session
+      response.headers.forEach((v, k) => {
+        if (k.toLowerCase() === 'set-cookie') redirectResp.headers.append(k, v)
+      })
       return redirectResp
     }
 

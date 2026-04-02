@@ -12,28 +12,43 @@ export default function MembersListPage() {
   const [search, setSearch] = useState('')
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchMembers()
-  }, [])
+    const timer = setTimeout(() => {
+      fetchMembers()
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const fetchMembers = async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('members')
-      .select('*')
-      .order('full_name', { ascending: true })
+    setError(null)
+    try {
+      let query = supabase
+        .from('members')
+        .select('*')
+        .order('full_name', { ascending: true })
 
-    if (!error && data) {
-      setMembers(data)
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
+      }
+
+      const { data, error: sbError } = await query
+
+      if (sbError) {
+        console.error('Supabase error:', sbError)
+        setError(sbError.message)
+      } else if (data) {
+        setMembers(data)
+      }
+    } catch (err: any) {
+      console.error('Fetch error:', err)
+      setError(err.message || 'An unexpected error occurred')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
-
-  const filteredMembers = members.filter(m =>
-    m.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    m.phone?.includes(search)
-  )
 
   return (
     <DashboardLayout>
@@ -77,10 +92,19 @@ export default function MembersListPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-10 h-10 animate-spin text-accent" />
           </div>
+        ) : error ? (
+          <div className="glass-card p-12 text-center border-red-500/10">
+             <div className="w-16 h-16 bg-red-100 flex items-center justify-center text-red-600 rounded-3xl mx-auto mb-6">
+                <SlidersHorizontal className="w-8 h-8" />
+             </div>
+             <p className="text-red-500 font-bold mb-2">Error Loading Members</p>
+             <p className="text-[var(--text-muted)] text-sm mb-8">{error}</p>
+             <button onClick={fetchMembers} className="btn btn-secondary mx-auto">Try Again</button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-            {filteredMembers.length > 0 ? (
-              filteredMembers.map((member) => (
+            {members.length > 0 ? (
+              members.map((member) => (
                 <div key={member.id} className="animate-scaleIn">
                   <MemberCard member={member} />
                 </div>

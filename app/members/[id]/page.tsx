@@ -57,27 +57,36 @@ export default function MemberDetailPage() {
 
   const fetchMemberData = async () => {
     setLoading(true)
-    const { data: memberData, error: memberError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single()
+    try {
+      const [memberRes, recordsRes] = await Promise.all([
+        supabase
+          .from('members')
+          .select('*')
+          .eq('id', memberId)
+          .single(),
+        supabase
+          .from('body_records')
+          .select('*')
+          .eq('member_id', memberId)
+          .order('recorded_at', { ascending: false })
+      ])
 
-    if (!memberError && memberData) {
-      setMember(memberData)
-      setHeight(memberData.height_cm?.toString() || '') // Default height from member profile if available
+      const { data: memberData, error: memberError } = memberRes
+      const { data: recordsData, error: recordsError } = recordsRes
+
+      if (!memberError && memberData) {
+        setMember(memberData)
+        setHeight(memberData.height_cm?.toString() || '') 
+      }
+
+      if (!recordsError && recordsData) {
+        setRecords(recordsData)
+      }
+    } catch (err) {
+      console.error('Error fetching member data:', err)
+    } finally {
+      setLoading(false)
     }
-
-    const { data: recordsData, error: recordsError } = await supabase
-      .from('body_records')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('recorded_at', { ascending: false })
-
-    if (!recordsError && recordsData) {
-      setRecords(recordsData)
-    }
-    setLoading(false)
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

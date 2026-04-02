@@ -82,7 +82,8 @@ export default function Sidebar() {
   if (loading) return null
 
   // Define nav items for the current role
-  const allowedNavItems = navItems.filter(item => {
+  // Default to empty list until role is confirmed to prevent UI leaks/flickers
+  const allowedNavItems = loading ? [] : navItems.filter(item => {
     if (userRole === 'checkin') {
       return item.href === '/checkin'
     }

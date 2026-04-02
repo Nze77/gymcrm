@@ -31,30 +31,29 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     setLoading(true)
     try {
-      // Fetch total members
-      const { count: total, error: totalErr } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-
-      // Fetch active members (example: status = 'active')
-      const { count: active, error: activeErr } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-
-      // Fetch recent checkins (last 24h)
       const yesterday = new Date()
       yesterday.setHours(yesterday.getHours() - 24)
-      const { count: recent, error: recentErr } = await supabase
-        .from('attendance')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', yesterday.toISOString())
+
+      // Parallelize fetches for better performance
+      const [totalRes, activeRes, recentRes] = await Promise.all([
+        supabase
+          .from('members')
+          .select('*', { count: 'exact', head: true }),
+        supabase
+          .from('members')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true),
+        supabase
+          .from('checkins')
+          .select('*', { count: 'exact', head: true })
+          .gte('checked_in_at', yesterday.toISOString())
+      ])
 
       setStats({
-        totalMembers: total || 0,
-        activeMembers: active || 0,
-        newMembers: 0, // Could fetch members created in last 7 days
-        recentCheckins: recent || 0
+        totalMembers: totalRes.count || 0,
+        activeMembers: activeRes.count || 0,
+        newMembers: 0,
+        recentCheckins: recentRes.count || 0
       })
     } catch (err) {
       console.error('Error fetching dashboard stats:', err)
