@@ -34,3 +34,15 @@ export interface MessageLog {
   message_type: 'welcome' | 'reminder'
   sent_at: string
 }
+
+export interface Membership {
+  id: string
+  uid: string
+  full_name: string
+  start_date: string
+  valid_till: string
+  amount_paid: number
+  payment_method: string
+  receipt_number?: string
+  created_at: string
+}
