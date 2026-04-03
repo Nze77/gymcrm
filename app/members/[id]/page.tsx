@@ -15,7 +15,8 @@ import {
   Camera,
   X,
   Edit,
-  User
+  User,
+  Image as ImageIcon
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member, BodyRecord, Membership } from '@/types'
@@ -523,28 +524,46 @@ export default function MemberDetailPage() {
 
               <div>
                 <label className="label !text-[var(--modal-text-dense)] font-bold">Progress Photo</label>
-                <div className="relative group/field h-40 border-2 border-dashed border-[var(--input-border)] rounded-3xl flex flex-col items-center justify-center gap-3 bg-[var(--input-bg)] hover:bg-orange-50/20 hover:border-accent transition-all cursor-pointer overflow-hidden">
-                  {imagePreview ? (
-                    <>
+                <div className="flex flex-col gap-4">
+                  <div className="relative w-full h-40 border-2 border-dashed border-[var(--input-border)] rounded-3xl flex flex-col items-center justify-center overflow-hidden bg-[var(--input-bg)]">
+                    {imagePreview ? (
                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Camera className="w-8 h-8 text-white" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-accent shadow-sm">
-                        <Camera className="w-6 h-6" />
-                      </div>
-                      <span className="text-sm font-bold text-[var(--text-secondary)]">Click to upload photo</span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleImageChange}
-                  />
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[var(--text-muted)] shadow-sm mb-2">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                        <span className="text-sm font-bold text-[var(--text-secondary)]">No photo selected</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                      <button type="button" className="w-full btn bg-[var(--input-bg)] border border-[var(--input-border)] hover:border-accent hover:text-accent transition-colors shadow-sm h-12 gap-2 text-sm">
+                        <ImageIcon className="w-5 h-5" />
+                        Gallery
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleImageChange}
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <button type="button" className="w-full btn bg-[var(--input-bg)] border border-[var(--input-border)] hover:border-accent hover:text-accent transition-colors shadow-sm h-12 gap-2 text-sm">
+                        <Camera className="w-5 h-5" />
+                        Camera
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleImageChange}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -584,29 +603,47 @@ export default function MemberDetailPage() {
 
             <form onSubmit={handleUpdateMember} className="space-y-8">
               {/* Profile Photo Edit */}
-              <div className="flex flex-col items-center gap-6 mb-8">
-                <div className="relative group/photo w-32 h-32 rounded-3xl bg-[var(--input-bg)] border-2 border-dashed border-[var(--input-border)] hover:border-accent flex items-center justify-center transition-all cursor-pointer overflow-hidden shadow-inner">
+              <div className="flex flex-col items-center gap-4 mb-8">
+                <div className="relative w-32 h-32 rounded-3xl bg-[var(--input-bg)] border-2 border-dashed border-[var(--input-border)] flex items-center justify-center overflow-hidden shadow-inner">
                   {editImagePreview ? (
-                    <>
-                      <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity">
-                        <Camera className="w-8 h-8 text-white" />
-                      </div>
-                    </>
+                    <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-accent shadow-sm">
-                        <Camera className="w-5 h-5" />
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-[var(--text-muted)] shadow-sm">
+                        <User className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest leading-none">Change Photo</span>
+                      <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest leading-none">No Photo</span>
                     </div>
                   )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleEditImageChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
+                </div>
+                
+                <div className="flex items-center gap-3 w-full max-w-[280px]">
+                  <div className="relative flex-1">
+                    <button type="button" className="w-full btn bg-[var(--input-bg)] shadow-sm border border-[var(--input-border)] hover:border-accent hover:text-accent font-bold text-sm h-11 gap-2 rounded-2xl">
+                      <ImageIcon className="w-4 h-4" />
+                      Gallery
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="relative flex-1">
+                    <button type="button" className="w-full btn bg-[var(--input-bg)] shadow-sm border border-[var(--input-border)] hover:border-accent hover:text-accent font-bold text-sm h-11 gap-2 rounded-2xl">
+                      <Camera className="w-4 h-4" />
+                      Camera
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleEditImageChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
               <div>
