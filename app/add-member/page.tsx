@@ -26,6 +26,7 @@ export default function AddMemberPage() {
 
   // Form State
   const [fullName, setFullName] = useState('')
+  const [idNo, setIdNo] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [joinedAt, setJoinedAt] = useState(formatInputDate(new Date()))
@@ -72,6 +73,7 @@ export default function AddMemberPage() {
         .from('members')
         .insert([{
           full_name: fullName,
+          id_no: idNo || null,
           phone,
           email,
           joined_at: joinedAt,
@@ -151,6 +153,20 @@ export default function AddMemberPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-full md:col-span-1">
+                <label className="label">ID no.</label>
+                <div className="relative group/field">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="e.g. 101"
+                    className="!pl-10 h-14"
+                    value={idNo}
+                    onChange={(e) => setIdNo(e.target.value)}
                   />
                 </div>
               </div>

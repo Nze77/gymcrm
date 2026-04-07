@@ -1,5 +1,6 @@
 export interface Member {
   id: string
+  id_no?: string | null
   full_name: string
   phone?: string
   email?: string

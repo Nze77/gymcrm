@@ -42,6 +42,7 @@ export default function MemberDetailPage() {
 
   // Edit Member Form
   const [editFullName, setEditFullName] = useState('')
+  const [editIdNo, setEditIdNo] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [editValidTill, setEditValidTill] = useState('')
   const [editAmountPaid, setEditAmountPaid] = useState('')
@@ -173,6 +174,7 @@ export default function MemberDetailPage() {
   const openEditModal = () => {
     if (member) {
       setEditFullName(member.full_name)
+      setEditIdNo(member.id_no || '')
       setEditPhone(member.phone || '')
       setEditValidTill(formatInputDate(new Date(member.valid_till)))
       setEditAmountPaid(member.amount_paid?.toString() || '0')
@@ -211,6 +213,7 @@ export default function MemberDetailPage() {
         .from('members')
         .update({
           full_name: editFullName,
+          id_no: editIdNo || null,
           phone: editPhone,
           valid_till: editValidTill,
           amount_paid: parseFloat(editAmountPaid) || 0,
@@ -328,6 +331,9 @@ export default function MemberDetailPage() {
                     <Edit className="w-5 h-5" />
                   </button>
                 </div>
+                {member.id_no && (
+                  <p className="text-[var(--text-secondary)] text-lg font-medium mb-1">ID no. {member.id_no}</p>
+                )}
                 <p className="text-[var(--text-secondary)] text-lg">Member since {formatDate(member.joined_at)}</p>
               </div>
 
@@ -656,6 +662,19 @@ export default function MemberDetailPage() {
                     value={editFullName}
                     onChange={(e) => setEditFullName(e.target.value)}
                     required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label !text-[var(--modal-text-dense)] font-bold">ID no.</label>
+                <div className="relative group/field">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] group-focus-within/field:text-accent transition-colors" />
+                  <input
+                    type="text"
+                    className="!pl-10 h-14"
+                    value={editIdNo}
+                    onChange={(e) => setEditIdNo(e.target.value)}
                   />
                 </div>
               </div>
