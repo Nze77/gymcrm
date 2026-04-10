@@ -16,7 +16,9 @@ import {
   X,
   Edit,
   User,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member, BodyRecord, Membership } from '@/types'
@@ -37,7 +39,9 @@ export default function MemberDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [memberships, setMemberships] = useState<Membership[]>([])
 
   // Edit Member Form
@@ -284,6 +288,46 @@ export default function MemberDetailPage() {
     }
   }
 
+  const handleDeleteMember = async () => {
+    if (!member) return
+    setIsDeleting(true)
+
+    try {
+      // 1. Delete body records
+      await supabase
+        .from('body_records')
+        .delete()
+        .eq('member_id', memberId)
+
+      // 2. Delete memberships
+      await supabase
+        .from('memberships')
+        .delete()
+        .eq('uid', memberId)
+
+      // 3. Delete attendance records if they exist
+      await supabase
+        .from('attendance')
+        .delete()
+        .eq('member_id', memberId)
+
+      // 4. Delete the member
+      const { error } = await supabase
+        .from('members')
+        .delete()
+        .eq('id', memberId)
+
+      if (error) throw error
+
+      // Redirect to members list
+      router.push('/members')
+    } catch (err: any) {
+      console.error('Error deleting member:', err)
+      alert(err.message || 'Failed to delete member')
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -329,6 +373,9 @@ export default function MemberDetailPage() {
                   <h1 className="text-5xl font-bold">{member.full_name}</h1>
                   <button onClick={openEditModal} className="p-2 bg-[var(--input-bg)] rounded-xl hover:text-accent transition-colors" title="Edit Member">
                     <Edit className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 bg-[var(--input-bg)] rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors" title="Delete Member">
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
                 {member.id_no && (
@@ -861,6 +908,55 @@ export default function MemberDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isDeleting && setIsDeleteModalOpen(false)} />
+          <div className="glass-card !bg-[var(--modal-bg-dense)] w-full max-w-[440px] p-8 md:p-10 relative z-10 animate-scaleIn shadow-2xl backdrop-blur-[10px]">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Delete Member</h2>
+                <p className="text-[var(--text-secondary)] leading-relaxed">
+                  Are you sure you want to permanently delete <span className="font-bold text-[var(--text-primary)]">{member.full_name}</span>? This will remove all their records, memberships, and progress data.
+                </p>
+              </div>
+
+              <p className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-xl">
+                ⚠️ This action cannot be undone
+              </p>
+
+              <div className="flex gap-4 w-full mt-2">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="flex-1 btn h-14 bg-[var(--input-bg)] border border-[var(--input-border)] font-bold hover:border-accent/40 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteMember}
+                  disabled={isDeleting}
+                  className="flex-1 btn h-14 bg-red-500 text-white font-bold hover:bg-red-600 transition-colors shadow-xl shadow-red-500/20"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Trash2 className="w-5 h-5" />
+                      Delete
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
