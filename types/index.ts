@@ -36,6 +36,14 @@ export interface MessageLog {
   sent_at: string
 }
 
+export interface Enquiry {
+  id: string
+  name: string
+  phone: string
+  location: string
+  created_at: string
+}
+
 export interface Membership {
   id: string
   uid: string
