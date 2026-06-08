@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Search, Loader2, UserPlus, Fingerprint, Lock, Users, LogOut } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Search, Loader2, UserPlus, Fingerprint, Lock, Users, LogOut, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member, Checkin } from '@/types'
 import { isMemberActive, formatDate } from '@/utils/dateHelpers'
@@ -14,6 +15,10 @@ export default function CheckinPage() {
   const [loading, setLoading] = useState(false)
   const [activeCheckins, setActiveCheckins] = useState<Record<string, Checkin | null>>({})
   const [liveMembers, setLiveMembers] = useState<any[]>([])
+  const [selectedLiveId, setSelectedLiveId] = useState<string | null>(null)
+  const [isClosing, setIsClosing] = useState(false)
+  const [isEntering, setIsEntering] = useState(false)
+  const overlayCardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchLiveOccupancy()
@@ -98,6 +103,38 @@ export default function CheckinPage() {
     if (!error) {
       setActiveCheckins(prev => ({ ...prev, [memberId]: null }))
       fetchLiveOccupancy()
+    }
+  }
+
+  useEffect(() => {
+    if (selectedLiveId) {
+      setIsEntering(true)
+      requestAnimationFrame(() => requestAnimationFrame(() => setIsEntering(false)))
+    }
+  }, [selectedLiveId])
+
+  const closeOverlay = () => {
+    setIsClosing(true)
+    setTimeout(() => {
+      setSelectedLiveId(null)
+      setIsClosing(false)
+    }, 280)
+  }
+
+  const handleLiveCheckOut = async (checkinId: string, memberId: string) => {
+    const { error } = await supabase
+      .from('checkins')
+      .update({ checked_out_at: new Date().toISOString() })
+      .eq('id', checkinId)
+
+    if (!error) {
+      setIsClosing(true)
+      setTimeout(() => {
+        setSelectedLiveId(null)
+        setIsClosing(false)
+        setActiveCheckins(prev => ({ ...prev, [memberId]: null }))
+        fetchLiveOccupancy()
+      }, 280)
     }
   }
 
@@ -223,10 +260,11 @@ export default function CheckinPage() {
               liveMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="glass-card p-4 flex flex-col items-center text-center animate-scaleIn border-green-500/10 hover:border-green-500/30 transition-all group"
+                  onClick={() => { setSelectedLiveId(member.id); setIsClosing(false) }}
+                  className="glass-card p-4 flex flex-col items-center text-center animate-scaleIn border-green-500/10 hover:border-green-500/30 hover:scale-105 transition-all duration-200 cursor-pointer group"
                 >
                   <div className="relative w-16 h-16 mb-3">
-                    <div className="w-full h-full rounded-2xl overflow-hidden bg-[var(--input-bg)] group-hover:scale-105 transition-transform">
+                    <div className="w-full h-full rounded-2xl overflow-hidden bg-[var(--input-bg)]">
                       {member.profile_image_url ? (
                         <img src={member.profile_image_url} alt={member.full_name} className="w-full h-full object-cover" />
                       ) : (
@@ -252,6 +290,79 @@ export default function CheckinPage() {
         </section>
 
       </div>
+
+      {selectedLiveId && typeof document !== 'undefined' && (() => {
+        const member = liveMembers.find(m => m.id === selectedLiveId)
+        if (!member) return null
+        return createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{
+              transition: 'opacity 280ms cubic-bezier(0.4,0,0.2,1)',
+              opacity: isClosing || isEntering ? 0 : 1,
+            }}
+          >
+            {/* Backdrop — subtle blur, no heavy tint */}
+            <div
+              className="absolute inset-0 backdrop-blur-md"
+              style={{ background: 'rgba(0,0,0,0.18)' }}
+              onClick={closeOverlay}
+            />
+
+            {/* Card */}
+            <div
+              ref={overlayCardRef}
+              className="relative glass-card flex flex-col items-center text-center p-10 w-full max-w-sm shadow-2xl"
+              style={{
+                transition: 'transform 300ms cubic-bezier(0.34,1.56,0.64,1), opacity 280ms cubic-bezier(0.4,0,0.2,1)',
+                transform: isClosing || isEntering ? 'scale(0.82) translateY(16px)' : 'scale(1) translateY(0)',
+                opacity: isClosing || isEntering ? 0 : 1,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={closeOverlay}
+                className="absolute top-4 left-4 w-9 h-9 flex items-center justify-center rounded-xl border border-[var(--input-border)] hover:bg-[var(--input-bg)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Avatar */}
+              <div className="relative w-28 h-28 mb-5 mt-2">
+                <div className="w-full h-full rounded-3xl overflow-hidden bg-[var(--input-bg)] border-2 border-green-500/20 shadow-xl shadow-green-500/10">
+                  {member.profile_image_url ? (
+                    <img src={member.profile_image_url} alt={member.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-[var(--text-muted)] uppercase">
+                      {member.full_name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full animate-pulse shadow-md" />
+              </div>
+
+              {/* Info */}
+              <h3 className="text-2xl font-bold mb-1">{member.full_name}</h3>
+              <p className="text-sm text-[var(--text-muted)] mb-1">Currently in gym</p>
+              <p className="text-sm font-bold text-green-600 mb-8">
+                Since {new Date(member.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+
+              {/* Checkout button */}
+              <button
+                onClick={() => handleLiveCheckOut(member.checkin_id, member.id)}
+                className="w-full h-14 flex items-center justify-center gap-3 bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold text-sm uppercase tracking-widest rounded-2xl shadow-lg shadow-red-500/30 transition-all duration-150"
+              >
+                <Lock className="w-5 h-5" />
+                Check Out
+              </button>
+            </div>
+          </div>,
+          document.body
+        )
+      })()}
+
     </DashboardLayout>
   )
 }
