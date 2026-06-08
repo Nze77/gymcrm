@@ -18,10 +18,27 @@ import {
   User,
   Image as ImageIcon,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CalendarDays
 } from 'lucide-react'
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  isSameMonth,
+  isSameDay,
+  eachDayOfInterval,
+  isAfter
+} from 'date-fns'
 import { supabase } from '@/lib/supabase'
-import { Member, BodyRecord, Membership } from '@/types'
+import { Member, BodyRecord, Membership, Checkin } from '@/types'
 import { isMemberActive, formatDate, formatInputDate } from '@/utils/dateHelpers'
 import DashboardLayout from '@/components/DashboardLayout'
 import StatusBadge from '@/components/StatusBadge'
@@ -43,6 +60,10 @@ export default function MemberDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [memberships, setMemberships] = useState<Membership[]>([])
+  const [memberCheckins, setMemberCheckins] = useState<Checkin[]>([])
+  const [attendanceMonth, setAttendanceMonth] = useState(new Date())
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(new Date())
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
 
   // Edit Member Form
   const [editFullName, setEditFullName] = useState('')
@@ -77,7 +98,7 @@ export default function MemberDetailPage() {
   const fetchMemberData = async () => {
     setLoading(true)
     try {
-      const [memberRes, recordsRes, membershipsRes] = await Promise.all([
+      const [memberRes, recordsRes, membershipsRes, checkinsRes] = await Promise.all([
         supabase
           .from('members')
           .select('*')
@@ -92,7 +113,12 @@ export default function MemberDetailPage() {
           .from('memberships')
           .select('*')
           .eq('uid', memberId)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('checkins')
+          .select('*')
+          .eq('member_id', memberId)
+          .order('checked_in_at', { ascending: false })
       ])
 
       const { data: memberData, error: memberError } = memberRes
@@ -110,6 +136,11 @@ export default function MemberDetailPage() {
       const { data: membershipsData, error: membershipsError } = membershipsRes as any
       if (!membershipsError && membershipsData) {
         setMemberships(membershipsData)
+      }
+
+      const { data: checkinsData, error: checkinsError } = checkinsRes
+      if (!checkinsError && checkinsData) {
+        setMemberCheckins(checkinsData as Checkin[])
       }
     } catch (err) {
       console.error('Error fetching member data:', err)
@@ -461,6 +492,158 @@ export default function MemberDetailPage() {
                 </button>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Attendance Section */}
+        <section className="flex flex-col gap-8">
+          <h2 className="text-3xl font-bold">Attendance History</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Calendar */}
+            <div className="lg:col-span-7 glass-card p-6 md:p-8 shadow-2xl shadow-black/5 animate-scaleIn">
+              {/* Month nav */}
+              <div className="flex items-center justify-between mb-6">
+                <button
+                  onClick={() => setAttendanceMonth(m => subMonths(m, 1))}
+                  className="p-2 rounded-xl hover:bg-[var(--input-bg)] transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-base font-bold uppercase tracking-widest">
+                  {format(attendanceMonth, 'MMMM yyyy')}
+                </span>
+                <button
+                  onClick={() => setAttendanceMonth(m => addMonths(m, 1))}
+                  className="p-2 rounded-xl hover:bg-[var(--input-bg)] transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Day headers */}
+              <div className="grid grid-cols-7 mb-3">
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                  <div key={d} className="text-center text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">{d}</div>
+                ))}
+              </div>
+
+              {/* Day cells */}
+              <div className="grid grid-cols-7 gap-1 md:gap-2">
+                {eachDayOfInterval({
+                  start: startOfWeek(startOfMonth(attendanceMonth)),
+                  end: endOfWeek(endOfMonth(attendanceMonth))
+                }).map((day, i) => {
+                  const isCurrentMonth = isSameMonth(day, attendanceMonth)
+                  const isSelected = isSameDay(day, selectedAttendanceDate)
+                  const isToday = isSameDay(day, new Date())
+                  const isFuture = isAfter(day, new Date())
+                  const hasVisit = memberCheckins.some(c => isSameDay(new Date(c.checked_in_at), day))
+
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => isCurrentMonth && !isFuture && setSelectedAttendanceDate(day)}
+                      className={[
+                        'relative aspect-square flex flex-col items-center justify-center rounded-xl border transition-all duration-200',
+                        !isCurrentMonth ? 'opacity-20 pointer-events-none' : '',
+                        isFuture ? 'opacity-30 cursor-default' : 'cursor-pointer',
+                        isSelected
+                          ? 'bg-white text-green-600 border-green-200 shadow-lg shadow-green-500/10 scale-105 z-10'
+                          : hasVisit
+                            ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20'
+                            : 'glass-card border-transparent hover:border-[var(--input-border)]',
+                        isToday && !isSelected ? 'ring-1 ring-orange-500/40' : ''
+                      ].join(' ')}
+                    >
+                      <span className={[
+                        'text-sm font-bold',
+                        isSelected ? 'text-green-600' : hasVisit ? 'text-green-600' : 'text-[var(--text-primary)]',
+                        isToday ? 'underline decoration-orange-500/60 decoration-2 underline-offset-4' : ''
+                      ].join(' ')}>
+                        {format(day, 'd')}
+                      </span>
+                      {hasVisit && !isSelected && (
+                        <span className="absolute bottom-1 w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center gap-4 mt-5 pt-4 border-t border-[var(--input-border)]">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/40 inline-block" />
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Visited</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-orange-400/40 border border-orange-400/40 inline-block" />
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Today</span>
+                </div>
+                <div className="ml-auto text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                  {memberCheckins.filter(c => isSameMonth(new Date(c.checked_in_at), attendanceMonth)).length} visits this month
+                </div>
+              </div>
+            </div>
+
+            {/* Day detail */}
+            <div className="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600 shadow-sm">
+                  <CalendarDays className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold">{format(selectedAttendanceDate, 'do MMMM yyyy')}</h3>
+              </div>
+
+              <div className="glass-card p-6 min-h-[280px] flex flex-col gap-4 shadow-xl shadow-black/5 animate-scaleIn">
+                {(() => {
+                  const dayLogs = memberCheckins.filter(c => isSameDay(new Date(c.checked_in_at), selectedAttendanceDate))
+                  if (dayLogs.length === 0) {
+                    return (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-40">
+                        <div className="w-14 h-14 bg-[var(--input-bg)] rounded-2xl flex items-center justify-center mb-4">
+                          <CalendarDays className="w-7 h-7" />
+                        </div>
+                        <p className="font-bold mb-1">No Visit</p>
+                        <p className="text-sm text-[var(--text-muted)]">Did not come in on this day.</p>
+                      </div>
+                    )
+                  }
+                  return dayLogs.map(log => (
+                    <div key={log.id} className="p-4 rounded-2xl bg-[var(--input-bg)] border border-[var(--input-border)] flex items-center justify-between animate-fadeUp">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Check In</p>
+                          <p className="font-bold text-green-600">
+                            {new Date(log.checked_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      {log.checked_out_at ? (
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Check Out</p>
+                          <p className="font-bold">
+                            {new Date(log.checked_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-[10px] font-black uppercase tracking-widest">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                          Still In
+                        </div>
+                      )}
+                    </div>
+                  ))
+                })()}
+              </div>
+
+              <div className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest text-right">
+                {memberCheckins.length} total visits all time
+              </div>
+            </div>
           </div>
         </section>
 
