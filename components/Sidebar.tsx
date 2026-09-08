@@ -16,7 +16,8 @@ import {
   Dumbbell,
   Calendar,
   LogOut,
-  ClipboardList
+  ClipboardList,
+  Download
 } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -35,6 +36,7 @@ const navItems = [
   { label: 'Expiring', href: '/expiring', icon: Clock },
   { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Enquiry', href: '/enquiry', icon: ClipboardList },
+  { label: 'Export', href: '/export', icon: Download },
 ]
 
 export default function Sidebar() {
