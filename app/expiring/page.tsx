@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Loader2, Users, Hourglass, SlidersHorizontal, ArrowUpRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member } from '@/types'
-import { formatDate, getExpiryWindow } from '@/utils/dateHelpers'
+import { formatDate, formatInputDate, getExpiryWindow, daysUntilExpiry } from '@/utils/dateHelpers'
 import DashboardLayout from '@/components/DashboardLayout'
 import Link from 'next/link'
 
@@ -24,8 +24,8 @@ export default function ExpiringSoonPage() {
     const { data, error } = await supabase
       .from('members')
       .select('*')
-      .gte('valid_till', start.toISOString().split('T')[0])
-      .lte('valid_till', end.toISOString().split('T')[0])
+      .gte('valid_till', formatInputDate(start))
+      .lte('valid_till', formatInputDate(end))
       .order('valid_till', { ascending: true })
 
     if (!error && data) {
@@ -99,7 +99,10 @@ export default function ExpiringSoonPage() {
                     <span className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">Expires {formatDate(member.valid_till)}</span>
                   </div>
                   <div className="badge badge-inactive">
-                    In {Math.ceil((new Date(member.valid_till).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days
+                    {(() => {
+                      const days = daysUntilExpiry(member.valid_till)
+                      return days === 0 ? 'Expires Today' : days === 1 ? 'In 1 Day' : `In ${days} Days`
+                    })()}
                   </div>
                 </div>
               </Link>
