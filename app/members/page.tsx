@@ -232,7 +232,7 @@ export default function MembersListPage() {
               "flex items-center justify-center h-16 px-8 gap-3 font-bold uppercase tracking-widest rounded-2xl shadow-xl border transition-colors",
               isFiltered
                 ? "bg-accent text-white border-accent"
-                : "bg-white text-[var(--text-primary)] border-[var(--input-border)]"
+                : "bg-white text-black border-[var(--input-border)]"
             )}
           >
             <SlidersHorizontal className={cn("w-5 h-5", isFiltered ? "text-white" : "text-accent")} />
