@@ -22,9 +22,19 @@ const FILTER_LABELS: Record<'all' | 'active' | 'inactive', string> = {
   inactive: 'Inactive',
 }
 
+// Sorting by expiry only applies to the Inactive filter; everything else is A-Z.
+type ExpirySort = 'name' | 'expired_latest' | 'expired_oldest'
+
+const SORT_LABELS: Record<ExpirySort, string> = {
+  name: 'Name (A-Z)',
+  expired_latest: 'Expired: latest first',
+  expired_oldest: 'Expired: oldest first',
+}
+
 export default function MembersListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [expirySort, setExpirySort] = useState<ExpirySort>('name')
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,17 +47,24 @@ export default function MembersListPage() {
   useEffect(() => {
     const timer = setTimeout(fetchMembers, 300)
     return () => clearTimeout(timer)
-  }, [search, statusFilter])
+  }, [search, statusFilter, expirySort])
 
   const fetchMembers = async () => {
     setLoading(true)
     setError(null)
 
     try {
+      const sortByExpiry = statusFilter === 'inactive' && expirySort !== 'name'
+
       let query = supabase
         .from('members')
         .select('*')
-        .order('full_name', { ascending: true })
+
+      query = sortByExpiry
+        ? query
+            .order('valid_till', { ascending: expirySort === 'expired_oldest' })
+            .order('full_name', { ascending: true })
+        : query.order('full_name', { ascending: true })
 
       if (search) {
         query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
@@ -75,6 +92,10 @@ export default function MembersListPage() {
   }
 
   const isFiltered = statusFilter !== 'all'
+  const isSortedByExpiry = statusFilter === 'inactive' && expirySort !== 'name'
+  const filterLabel = isSortedByExpiry
+    ? `${FILTER_LABELS[statusFilter]} · ${expirySort === 'expired_latest' ? 'Latest' : 'Oldest'}`
+    : FILTER_LABELS[statusFilter]
 
   // Portalled modal — renders directly on document.body,
   // escaping the overflow-x: hidden stacking context in DashboardLayout
@@ -107,7 +128,11 @@ export default function MembersListPage() {
                   key={filter}
                   onClick={() => {
                     setStatusFilter(filter)
-                    setIsFilterModalOpen(false)
+                    if (filter !== 'inactive') {
+                      setExpirySort('name')
+                      setIsFilterModalOpen(false)
+                    }
+                    // Inactive keeps the modal open so the sort options below can be picked.
                   }}
                   className={cn(
                     "h-14 rounded-xl px-6 text-left font-bold border transition-colors",
@@ -121,10 +146,36 @@ export default function MembersListPage() {
               ))}
             </div>
 
+            {statusFilter === 'inactive' && (
+              <div className="mt-8">
+                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">Sort by</h3>
+                <div className="flex flex-col gap-3">
+                  {(['name', 'expired_latest', 'expired_oldest'] as const).map((sort) => (
+                    <button
+                      key={sort}
+                      onClick={() => {
+                        setExpirySort(sort)
+                        setIsFilterModalOpen(false)
+                      }}
+                      className={cn(
+                        "h-12 rounded-xl px-6 text-left font-bold border transition-colors",
+                        expirySort === sort
+                          ? "bg-accent/10 text-accent border-accent"
+                          : "bg-[var(--input-bg)] border-[var(--input-border)] hover:border-accent/50"
+                      )}
+                    >
+                      {SORT_LABELS[sort]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {isFiltered && (
               <button
                 onClick={() => {
                   setStatusFilter('all')
+                  setExpirySort('name')
                   setIsFilterModalOpen(false)
                 }}
                 className="w-full h-14 mt-6 border border-[var(--input-border)] rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
@@ -186,7 +237,7 @@ export default function MembersListPage() {
           >
             <SlidersHorizontal className={cn("w-5 h-5", isFiltered ? "text-white" : "text-accent")} />
             <span className="text-sm">
-              {isFiltered ? FILTER_LABELS[statusFilter] : 'Filters'}
+              {isFiltered ? filterLabel : 'Filters'}
             </span>
             {isFiltered && <span className="w-2 h-2 rounded-full bg-white opacity-80" />}
           </button>
@@ -219,7 +270,7 @@ export default function MembersListPage() {
             <p className="text-sm text-[var(--text-muted)] -mt-4">
               {members.length} {members.length === 1 ? 'member' : 'members'}
               {isFiltered && (
-                <span> · <span className="text-accent font-semibold">{FILTER_LABELS[statusFilter]}</span></span>
+                <span> · <span className="text-accent font-semibold">{isSortedByExpiry ? `${FILTER_LABELS[statusFilter]} · ${SORT_LABELS[expirySort]}` : FILTER_LABELS[statusFilter]}</span></span>
               )}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
