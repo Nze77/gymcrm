@@ -27,6 +27,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { Member, Checkin } from '@/types'
 import { formatDate } from '@/utils/dateHelpers'
+import { isNoCheckout } from '@/utils/attendance'
 import DashboardLayout from '@/components/DashboardLayout'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -227,6 +228,10 @@ export default function AttendancePage() {
                           <div className="text-right">
                             <span className="block text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Out</span>
                             <span className="text-xs font-bold">{new Date(log.checked_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        ) : isNoCheckout(log) ? (
+                          <div className="py-1 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase">
+                            No Check-out
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 py-1 px-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-[10px] font-black uppercase">

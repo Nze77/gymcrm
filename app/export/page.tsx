@@ -20,7 +20,8 @@ import { format, startOfDay, endOfDay, startOfMonth, subMonths, subDays } from '
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { supabase } from '@/lib/supabase'
-import { formatInputDate } from '@/utils/dateHelpers'
+import { formatInputDate, isMemberActive } from '@/utils/dateHelpers'
+import { isNoCheckout } from '@/utils/attendance'
 import { downloadWorkbook, type CellValue, type SheetData } from '@/utils/xlsx'
 import DashboardLayout from '@/components/DashboardLayout'
 
@@ -102,7 +103,7 @@ const DATASETS: Dataset[] = [
       { header: 'Valid Till', value: r => asDate(r.valid_till) },
       { header: 'Amount Paid', value: r => num(r.amount_paid) },
       { header: 'Receipt No', value: r => r.receipt_number ?? null },
-      { header: 'Status', value: r => (r.is_active ? 'Active' : 'Inactive') },
+      { header: 'Status', value: r => (r.valid_till && isMemberActive(r.valid_till) ? 'Active' : 'Inactive') },
       { header: 'Created At', value: r => asDateTime(r.created_at) },
     ],
     fetch: (from, to, offset, limit) =>
@@ -151,7 +152,7 @@ const DATASETS: Dataset[] = [
       { header: 'Phone', value: r => r.member?.phone ?? null },
       { header: 'Date', value: r => asDate(r.checked_in_at) },
       { header: 'Check In', value: r => asTime(r.checked_in_at) },
-      { header: 'Check Out', value: r => asTime(r.checked_out_at) },
+      { header: 'Check Out', value: r => (isNoCheckout(r as any) ? 'No check-out' : asTime(r.checked_out_at)) },
       { header: 'Duration (min)', value: r => durationMinutes(r.checked_in_at, r.checked_out_at) },
     ],
     fetch: (from, to, offset, limit) =>

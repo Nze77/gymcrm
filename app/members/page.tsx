@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom'
 import { Search, Loader2, UserPlus, SlidersHorizontal, Users, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Member } from '@/types'
+import { formatInputDate } from '@/utils/dateHelpers'
 import DashboardLayout from '@/components/DashboardLayout'
 import MemberCard from '@/components/MemberCard'
 import Link from 'next/link'
@@ -52,10 +53,14 @@ export default function MembersListPage() {
         query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
       }
 
+      // Status is derived from valid_till (same rule as isMemberActive / the
+      // badge on each card). The stored is_active flag is only written on
+      // save, so it goes stale once a membership lapses.
+      const today = formatInputDate(new Date())
       if (statusFilter === 'active') {
-        query = query.eq('is_active', true)
+        query = query.gte('valid_till', today)
       } else if (statusFilter === 'inactive') {
-        query = query.eq('is_active', false)
+        query = query.lt('valid_till', today)
       }
 
       const { data, error } = await query

@@ -39,6 +39,7 @@ import {
 } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { Member, BodyRecord, Membership, Checkin } from '@/types'
+import { isNoCheckout } from '@/utils/attendance'
 import { isMemberActive, formatDate, formatInputDate } from '@/utils/dateHelpers'
 import DashboardLayout from '@/components/DashboardLayout'
 import StatusBadge from '@/components/StatusBadge'
@@ -628,6 +629,10 @@ export default function MemberDetailPage() {
                           <p className="font-bold">
                             {new Date(log.checked_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
+                        </div>
+                      ) : isNoCheckout(log) ? (
+                        <div className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest">
+                          No Check-out
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-[10px] font-black uppercase tracking-widest">

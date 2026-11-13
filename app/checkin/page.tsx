@@ -6,6 +6,7 @@ import { Search, Loader2, UserPlus, Fingerprint, Lock, Users, LogOut, X } from '
 import { supabase } from '@/lib/supabase'
 import { Member, Checkin } from '@/types'
 import { isMemberActive, formatDate } from '@/utils/dateHelpers'
+import { isTooShortVisit, startOfTodayISO } from '@/utils/attendance'
 import DashboardLayout from '@/components/DashboardLayout'
 import StatusBadge from '@/components/StatusBadge'
 
@@ -41,6 +42,7 @@ export default function CheckinPage() {
       .from('checkins')
       .select('*, member:members(*)')
       .is('checked_out_at', null)
+      .gte('checked_in_at', startOfTodayISO())
 
     if (data) {
       setLiveMembers(data.map(d => ({ ...d.member, checkin_id: d.id, checkin_time: d.checked_in_at })))
@@ -68,6 +70,7 @@ export default function CheckinPage() {
       .select('*')
       .eq('member_id', memberId)
       .is('checked_out_at', null)
+      .gte('checked_in_at', startOfTodayISO())
       .order('checked_in_at', { ascending: false })
       .limit(1)
 
@@ -91,14 +94,23 @@ export default function CheckinPage() {
     }
   }
 
+  // Visits shorter than MIN_VISIT_MINUTES are discarded instead of recorded.
+  const closeCheckin = async (checkinId: string, checkedInAt: string) => {
+    const now = new Date()
+    if (isTooShortVisit(checkedInAt, now)) {
+      return supabase.from('checkins').delete().eq('id', checkinId)
+    }
+    return supabase
+      .from('checkins')
+      .update({ checked_out_at: now.toISOString() })
+      .eq('id', checkinId)
+  }
+
   const handleCheckOut = async (memberId: string) => {
     const activeCheckin = activeCheckins[memberId]
     if (!activeCheckin) return
 
-    const { error } = await supabase
-      .from('checkins')
-      .update({ checked_out_at: new Date().toISOString() })
-      .eq('id', activeCheckin.id)
+    const { error } = await closeCheckin(activeCheckin.id, activeCheckin.checked_in_at)
 
     if (!error) {
       setActiveCheckins(prev => ({ ...prev, [memberId]: null }))
@@ -121,11 +133,8 @@ export default function CheckinPage() {
     }, 280)
   }
 
-  const handleLiveCheckOut = async (checkinId: string, memberId: string) => {
-    const { error } = await supabase
-      .from('checkins')
-      .update({ checked_out_at: new Date().toISOString() })
-      .eq('id', checkinId)
+  const handleLiveCheckOut = async (checkinId: string, checkedInAt: string, memberId: string) => {
+    const { error } = await closeCheckin(checkinId, checkedInAt)
 
     if (!error) {
       setIsClosing(true)
@@ -351,7 +360,7 @@ export default function CheckinPage() {
 
               {/* Checkout button */}
               <button
-                onClick={() => handleLiveCheckOut(member.checkin_id, member.id)}
+                onClick={() => handleLiveCheckOut(member.checkin_id, member.checkin_time, member.id)}
                 className="w-full h-14 flex items-center justify-center gap-3 bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold text-sm uppercase tracking-widest rounded-2xl shadow-lg shadow-red-500/30 transition-all duration-150"
               >
                 <Lock className="w-5 h-5" />
