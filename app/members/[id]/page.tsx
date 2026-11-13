@@ -623,6 +623,17 @@ export default function MemberDetailPage() {
                           </p>
                         </div>
                       </div>
+                      {log.checked_out_at && (() => {
+                        const mins = Math.max(0, Math.round((new Date(log.checked_out_at).getTime() - new Date(log.checked_in_at).getTime()) / 60000))
+                        const h = Math.floor(mins / 60)
+                        const m = mins % 60
+                        return (
+                          <div className="text-center">
+                            <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Time</p>
+                            <p className="font-bold">{h > 0 ? `${h}h ${m}m` : `${m}m`}</p>
+                          </div>
+                        )
+                      })()}
                       {log.checked_out_at ? (
                         <div className="text-right">
                           <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-0.5">Check Out</p>
